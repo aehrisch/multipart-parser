@@ -2,7 +2,7 @@
 module MultipartParser::Fixtures
   # Returns all fixtures in the module
   def fixtures
-    [Rfc1867.new, NoTrailingCRLF.new, EmptyHeader.new]
+    [Rfc1867.new, NoTrailingCRLF.new, EmptyHeader.new, BoundaryWithCRLF.new]
   end
   extend self
 
@@ -76,6 +76,53 @@ module MultipartParser::Fixtures
         "... contents of file1.txt ...\r",
         '--AaB03x--'
       ].join("\r\n")
+    end
+  end
+
+  class BoundaryWithCRLF
+    def boundary
+      'uuid:608af275-e2c6-4302-93df-687a25ccd1c3'
+    end
+
+    def expect_error
+      false
+    end
+
+    def parts
+      part1, part2 = {}, {}
+      part1[:headers] = {
+        'Content-Id' => '<rootpart>',
+        'Content-Type' => 'application/xop+xml;charset=utf-8;type="application/soap+xml"',
+        'Content-Transfer-Encoding' => 'binary' }
+      part1[:data] = "<somexml>foobar</somexml>\r\n"
+
+      part2[:headers] = {
+        'Content-Id' => '<4b7a6950-9006-4634-b041-a11dfa98ba89>',
+        'Content-Type' => 'null',
+        'Content-Transfer-Encoding' => 'binary'
+      }
+      part2[:data] = "1\r\n2\r\n3"
+      [part1, part2]
+    end
+
+    def raw
+      ['--uuid:608af275-e2c6-4302-93df-687a25ccd1c3',
+       'Content-Id: <rootpart>',
+       'Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"',
+       'Content-Transfer-Encoding: binary',
+       '',
+       '<somexml>foobar</somexml>',
+       "\r\n",
+       '--uuid:608af275-e2c6-4302-93df-687a25ccd1c3',
+       'Content-Id: <4b7a6950-9006-4634-b041-a11dfa98ba89>',
+       'Content-Type: null',
+       'Content-Transfer-Encoding: binary',
+       '',
+       '1',
+       '2',
+       '3',
+       '',
+       '--uuid:608af275-e2c6-4302-93df-687a25ccd1c3--'].join("\r\n")
     end
   end
 
